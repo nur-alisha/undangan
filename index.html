@@ -711,31 +711,24 @@
             return shape;
         }
 
-        function createPetalShape() {
-            const shape = new THREE.Shape();
-            shape.moveTo(0, 0);
-            shape.quadraticCurveTo(0.25, 0.35, 0, 0.7);
-            shape.quadraticCurveTo(-0.25, 0.35, 0, 0);
-            return shape;
-        }
 
         function createFloatingFlowers() {
             const heartShape = createHeartShape();
-            const petalShape = createPetalShape();
             
             // Darker shades of pink and red
             const colors = [
-                0xDC143C, // Crimson
-                0xC71585, // Medium Violet Red
-                0xFF1493, // Deep Pink
-                0xDB7093, // Pale Violet Red
-                0xE91E63, // Material Pink 500
-                0xC2185B, // Material Pink 700
-                0xAD1457, // Material Pink 800
-                0x880E4F, // Material Pink 900
-                0xD32F2F, // Material Red 700
-                0xB71C1C  // Material Red 900
+            0xFFFFFF, // Pure White
+            0xF5F5F5, // White Smoke
+            0xFAFAFA, // Snow
+            0xF0F0F0, // Very Light Gray
+            0xEDEDED, // Light Gray Neutral
+            0xE8E8E8, // Subtle Warm Gray
+            0xEBEBEB, // Off-White Neutral
+            0xFFF8E7, // Soft Cream White
+            0xFDFCFB, // Linen White
+            0xECECEC  // Muted Off-White
             ];
+
             
             // Create a dense grid to fill screen
             const gridSize = 12; // 12x12x8 = 1152 shapes
@@ -744,10 +737,9 @@
             for (let x = 0; x < gridSize; x++) {
                 for (let y = 0; y < gridSize; y++) {
                     for (let z = 0; z < 8; z++) {
-                        const isHeart = Math.random() > 0.5;
                         
                         const geometry = new THREE.ExtrudeGeometry(
-                            isHeart ? heartShape : petalShape, 
+                            heartShape, 
                             {
                                 depth: isHeart ? 0.15 : 0.1,
                                 bevelEnabled: true,
