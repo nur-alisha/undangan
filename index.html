@@ -633,103 +633,54 @@
             return shape;
         }
 
-        function createPetalShape() {
-            const shape = new THREE.Shape();
-            shape.moveTo(0, 0);
-            shape.quadraticCurveTo(0.25, 0.35, 0, 0.7);
-            shape.quadraticCurveTo(-0.25, 0.35, 0, 0);
-            return shape;
-        }
-
         function createFloatingFlowers() {
             const heartShape = createHeartShape();
-            const petalShape = createPetalShape();
+            const pinkShades = [0xFF1493, 0xFF69B4, 0xFFB6C1, 0xFFC0CB, 0xFFDAE9];
             
-            // Darker shades of pink and red
-            const colors = [
-                0xDC143C, // Crimson
-                0xC71585, // Medium Violet Red
-                0xFF1493, // Deep Pink
-                0xDB7093, // Pale Violet Red
-                0xE91E63, // Material Pink 500
-                0xC2185B, // Material Pink 700
-                0xAD1457, // Material Pink 800
-                0x880E4F, // Material Pink 900
-                0xD32F2F, // Material Red 700
-                0xB71C1C  // Material Red 900
-            ];
-            
-            // Create a dense grid to fill screen
-            const gridSize = 12; // 12x12x8 = 1152 shapes
-            const spacing = 3.5;
-            
-            for (let x = 0; x < gridSize; x++) {
-                for (let y = 0; y < gridSize; y++) {
-                    for (let z = 0; z < 8; z++) {
-                        const isHeart = Math.random() > 0.5;
-                        
-                        const geometry = new THREE.ExtrudeGeometry(
-                            isHeart ? heartShape : petalShape, 
-                            {
-                                depth: isHeart ? 0.15 : 0.1,
-                                bevelEnabled: true,
-                                bevelThickness: isHeart ? 0.08 : 0.04,
-                                bevelSize: isHeart ? 0.08 : 0.04,
-                                bevelSegments: 3
-                            }
-                        );
-                        
-                        const material = new THREE.MeshPhongMaterial({ 
-                            color: colors[Math.floor(Math.random() * colors.length)],
-                            shininess: 80,
-                            transparent: true,
-                            opacity: 0.9
-                        });
-                        
-                        const shape = new THREE.Mesh(geometry, material);
-                        
-                        // Position in grid with some randomness
-                        const baseX = (x - gridSize / 2) * spacing;
-                        const baseY = (y - gridSize / 2) * spacing;
-                        const baseZ = (z - 4) * spacing;
-                        
-                        shape.position.x = baseX + (Math.random() - 0.5) * 1.5;
-                        shape.position.y = baseY + (Math.random() - 0.5) * 1.5;
-                        shape.position.z = baseZ + (Math.random() - 0.5) * 1.5;
-                        
-                        // Store original position for wiggling
-                        shape.userData.originalX = shape.position.x;
-                        shape.userData.originalY = shape.position.y;
-                        shape.userData.originalZ = shape.position.z;
-                        
-                        const scale = 0.6 + Math.random() * 0.5;
-                        shape.scale.set(scale, scale, scale);
-                        
-                        shape.rotation.x = Math.random() * Math.PI * 2;
-                        shape.rotation.y = Math.random() * Math.PI * 2;
-                        shape.rotation.z = Math.random() * Math.PI * 2;
-                        
-                        shape.userData = {
-                            ...shape.userData,
-                            wiggleSpeedX: (Math.random() - 0.5) * 0.0008,
-                            wiggleSpeedY: (Math.random() - 0.5) * 0.0008,
-                            wiggleSpeedZ: (Math.random() - 0.5) * 0.0006,
-                            wiggleAmountX: Math.random() * 0.3 + 0.2,
-                            wiggleAmountY: Math.random() * 0.3 + 0.2,
-                            wiggleAmountZ: Math.random() * 0.2 + 0.1,
-                            rotationSpeedX: (Math.random() - 0.5) * 0.008,
-                            rotationSpeedY: (Math.random() - 0.5) * 0.008,
-                            rotationSpeedZ: (Math.random() - 0.5) * 0.006,
-                            timeOffset: Math.random() * 1000,
-                            originalColor: material.color.getHex(),
-                            targetColor: material.color.getHex(),
-                            isHovered: false
-                        };
-                        
-                        scene.add(shape);
-                        flowers.push(shape);
-                    }
-                }
+            for (let i = 0; i < 50; i++) {
+                const geometry = new THREE.ExtrudeGeometry(heartShape, {
+                    depth: 0.15,
+                    bevelEnabled: true,
+                    bevelThickness: 0.08,
+                    bevelSize: 0.08,
+                    bevelSegments: 4
+                });
+                
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: pinkShades[Math.floor(Math.random() * pinkShades.length)],
+                    shininess: 100,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const heart = new THREE.Mesh(geometry, material);
+                
+                heart.position.x = (Math.random() - 0.5) * 35;
+                heart.position.y = (Math.random() - 0.5) * 35;
+                heart.position.z = (Math.random() - 0.5) * 25;
+                
+                const scale = 0.4 + Math.random() * 0.6;
+                heart.scale.set(scale, scale, scale);
+                
+                heart.rotation.x = Math.random() * Math.PI * 2;
+                heart.rotation.y = Math.random() * Math.PI * 2;
+                heart.rotation.z = Math.random() * Math.PI * 2;
+                
+                heart.userData = {
+                    speedX: (Math.random() - 0.5) * 0.015,
+                    speedY: (Math.random() - 0.5) * 0.012,
+                    speedZ: (Math.random() - 0.5) * 0.008,
+                    rotationSpeedX: (Math.random() - 0.5) * 0.015,
+                    rotationSpeedY: (Math.random() - 0.5) * 0.02,
+                    rotationSpeedZ: (Math.random() - 0.5) * 0.01,
+                    floatSpeed: Math.random() * 0.015 + 0.01,
+                    originalColor: material.color.getHex(),
+                    targetColor: material.color.getHex(),
+                    isHovered: false
+                };
+                
+                scene.add(heart);
+                flowers.push(heart);
             }
         }
 
