@@ -15,7 +15,7 @@
         body {
             font-family: 'Montserrat', sans-serif;
             overflow-x: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8B7355 0%, #C9A87C 100%);
         }
 
         #canvas-container {
@@ -44,6 +44,14 @@
             padding: 20px;
         }
 
+        .hero-content {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 50px 60px;
+            border-radius: 20px;
+        }
+
         h1 {
             font-family: 'Cormorant Garamond', serif;
             font-size: 3.5rem;
@@ -61,10 +69,10 @@
         }
 
         .date-box {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 30px 50px;
+            background: transparent;
+            backdrop-filter: none;
+            border: none;
+            padding: 30px 50px 0 50px;
             border-radius: 15px;
             margin-top: 20px;
         }
@@ -408,12 +416,14 @@
 
     <div class="content">
         <section class="hero">
-            <h1>Fulan & Fulanah</h1>
-            <p class="subtitle">UNDANGAN PERNIKAHAN</p>
-            
-            <div class="date-box">
-                <h2>15 Desember 2025</h2>
-                <p>MINGGU</p>
+            <div class="hero-content">
+                <h1>Fulan & Fulanah</h1>
+                <p class="subtitle">UNDANGAN PERNIKAHAN</p>
+                
+                <div class="date-box">
+                    <h2>15 Desember 2025</h2>
+                    <p>MINGGU</p>
+                </div>
             </div>
         </section>
 
@@ -640,22 +650,16 @@
 
         function createExplosion(position) {
             const heartShape = createHeartShape();
-            const petalShape = createPetalShape();
             const explosionCount = 20;
             
             for (let i = 0; i < explosionCount; i++) {
-                const isHeart = Math.random() > 0.5;
-                
-                const geometry = new THREE.ExtrudeGeometry(
-                    isHeart ? heartShape : petalShape, 
-                    {
-                        depth: isHeart ? 0.1 : 0.08,
-                        bevelEnabled: true,
-                        bevelThickness: 0.05,
-                        bevelSize: 0.05,
-                        bevelSegments: 2
-                    }
-                );
+                const geometry = new THREE.ExtrudeGeometry(heartShape, {
+                    depth: 0.1,
+                    bevelEnabled: true,
+                    bevelThickness: 0.05,
+                    bevelSize: 0.05,
+                    bevelSegments: 2
+                });
                 
                 const material = new THREE.MeshPhongMaterial({ 
                     color: 0xFFFFFF,
@@ -828,62 +832,62 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            const time = Date.now();
-
-            flowers.forEach((shape, index) => {
+            flowers.forEach((heart, index) => {
                 // Handle explosion particles
-                if (shape.userData.isExplosion) {
-                    shape.position.add(shape.userData.velocity);
-                    shape.userData.velocity.y -= 0.01; // Gravity
-                    shape.rotation.x += shape.userData.rotationSpeed.x;
-                    shape.rotation.y += shape.userData.rotationSpeed.y;
-                    shape.rotation.z += shape.userData.rotationSpeed.z;
+                if (heart.userData.isExplosion) {
+                    heart.position.add(heart.userData.velocity);
+                    heart.userData.velocity.y -= 0.01; // Gravity
+                    heart.rotation.x += heart.userData.rotationSpeed.x;
+                    heart.rotation.y += heart.userData.rotationSpeed.y;
+                    heart.rotation.z += heart.userData.rotationSpeed.z;
                     
                     // Fade out
-                    shape.material.opacity -= 0.016;
-                    shape.userData.lifetime--;
+                    heart.material.opacity -= 0.016;
+                    heart.userData.lifetime--;
                     
                     // Remove when done
-                    if (shape.userData.lifetime <= 0) {
-                        scene.remove(shape);
+                    if (heart.userData.lifetime <= 0) {
+                        scene.remove(heart);
                         flowers.splice(index, 1);
                     }
                     return;
                 }
                 
                 // Attraction force towards mouse
-                const dx = mouse3D.x - shape.position.x;
-                const dy = mouse3D.y - shape.position.y;
-                const dz = mouse3D.z - shape.position.z;
+                const dx = mouse3D.x - heart.position.x;
+                const dy = mouse3D.y - heart.position.y;
+                const dz = mouse3D.z - heart.position.z;
                 const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
                 
-                if (distance < 5) { // Only attract nearby shapes
+                if (distance < 5) {
                     const attractionStrength = 0.02 * (1 - distance / 5);
-                    shape.userData.attractionForceX = dx * attractionStrength;
-                    shape.userData.attractionForceY = dy * attractionStrength;
-                    shape.userData.attractionForceZ = dz * attractionStrength;
+                    heart.userData.attractionForceX = dx * attractionStrength;
+                    heart.userData.attractionForceY = dy * attractionStrength;
+                    heart.userData.attractionForceZ = dz * attractionStrength;
                 } else {
-                    shape.userData.attractionForceX *= 0.95;
-                    shape.userData.attractionForceY *= 0.95;
-                    shape.userData.attractionForceZ *= 0.95;
+                    heart.userData.attractionForceX *= 0.95;
+                    heart.userData.attractionForceY *= 0.95;
+                    heart.userData.attractionForceZ *= 0.95;
                 }
                 
-                // Wiggle motion + attraction
-                const t = (time + shape.userData.timeOffset) * 0.001;
-                shape.position.x = shape.userData.originalX + 
-                    Math.sin(t * 2 + shape.userData.originalY) * shape.userData.wiggleAmountX +
-                    shape.userData.attractionForceX;
-                shape.position.y = shape.userData.originalY + 
-                    Math.cos(t * 1.5 + shape.userData.originalX) * shape.userData.wiggleAmountY +
-                    shape.userData.attractionForceY;
-                shape.position.z = shape.userData.originalZ + 
-                    Math.sin(t * 1.8) * shape.userData.wiggleAmountZ +
-                    shape.userData.attractionForceZ;
+                // Free movement + attraction
+                heart.position.x += heart.userData.velocityX + heart.userData.attractionForceX;
+                heart.position.y += heart.userData.velocityY + heart.userData.attractionForceY;
+                heart.position.z += heart.userData.velocityZ + heart.userData.attractionForceZ;
                 
-                // Slight rotation
-                shape.rotation.x += shape.userData.rotationSpeedX;
-                shape.rotation.y += shape.userData.rotationSpeedY;
-                shape.rotation.z += shape.userData.rotationSpeedZ;
+                // Boundary wrapping (teleport to other side)
+                const boundary = 25;
+                if (heart.position.x > boundary) heart.position.x = -boundary;
+                if (heart.position.x < -boundary) heart.position.x = boundary;
+                if (heart.position.y > boundary) heart.position.y = -boundary;
+                if (heart.position.y < -boundary) heart.position.y = boundary;
+                if (heart.position.z > 15) heart.position.z = -15;
+                if (heart.position.z < -15) heart.position.z = 15;
+                
+                // Rotation
+                heart.rotation.x += heart.userData.rotationSpeedX;
+                heart.rotation.y += heart.userData.rotationSpeedY;
+                heart.rotation.z += heart.userData.rotationSpeedZ;
             });
 
             renderer.render(scene, camera);
