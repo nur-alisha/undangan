@@ -832,62 +832,62 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            flowers.forEach((heart, index) => {
+            const time = Date.now();
+
+            flowers.forEach((shape, index) => {
                 // Handle explosion particles
-                if (heart.userData.isExplosion) {
-                    heart.position.add(heart.userData.velocity);
-                    heart.userData.velocity.y -= 0.01; // Gravity
-                    heart.rotation.x += heart.userData.rotationSpeed.x;
-                    heart.rotation.y += heart.userData.rotationSpeed.y;
-                    heart.rotation.z += heart.userData.rotationSpeed.z;
+                if (shape.userData.isExplosion) {
+                    shape.position.add(shape.userData.velocity);
+                    shape.userData.velocity.y -= 0.01; // Gravity
+                    shape.rotation.x += shape.userData.rotationSpeed.x;
+                    shape.rotation.y += shape.userData.rotationSpeed.y;
+                    shape.rotation.z += shape.userData.rotationSpeed.z;
                     
                     // Fade out
-                    heart.material.opacity -= 0.016;
-                    heart.userData.lifetime--;
+                    shape.material.opacity -= 0.016;
+                    shape.userData.lifetime--;
                     
                     // Remove when done
-                    if (heart.userData.lifetime <= 0) {
-                        scene.remove(heart);
+                    if (shape.userData.lifetime <= 0) {
+                        scene.remove(shape);
                         flowers.splice(index, 1);
                     }
                     return;
                 }
                 
                 // Attraction force towards mouse
-                const dx = mouse3D.x - heart.position.x;
-                const dy = mouse3D.y - heart.position.y;
-                const dz = mouse3D.z - heart.position.z;
+                const dx = mouse3D.x - shape.position.x;
+                const dy = mouse3D.y - shape.position.y;
+                const dz = mouse3D.z - shape.position.z;
                 const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
                 
-                if (distance < 5) {
+                if (distance < 5) { // Only attract nearby shapes
                     const attractionStrength = 0.02 * (1 - distance / 5);
-                    heart.userData.attractionForceX = dx * attractionStrength;
-                    heart.userData.attractionForceY = dy * attractionStrength;
-                    heart.userData.attractionForceZ = dz * attractionStrength;
+                    shape.userData.attractionForceX = dx * attractionStrength;
+                    shape.userData.attractionForceY = dy * attractionStrength;
+                    shape.userData.attractionForceZ = dz * attractionStrength;
                 } else {
-                    heart.userData.attractionForceX *= 0.95;
-                    heart.userData.attractionForceY *= 0.95;
-                    heart.userData.attractionForceZ *= 0.95;
+                    shape.userData.attractionForceX *= 0.95;
+                    shape.userData.attractionForceY *= 0.95;
+                    shape.userData.attractionForceZ *= 0.95;
                 }
                 
-                // Free movement + attraction
-                heart.position.x += heart.userData.velocityX + heart.userData.attractionForceX;
-                heart.position.y += heart.userData.velocityY + heart.userData.attractionForceY;
-                heart.position.z += heart.userData.velocityZ + heart.userData.attractionForceZ;
+                // Wiggle motion + attraction
+                const t = (time + shape.userData.timeOffset) * 0.001;
+                shape.position.x = shape.userData.originalX + 
+                    Math.sin(t * 2 + shape.userData.originalY) * shape.userData.wiggleAmountX +
+                    shape.userData.attractionForceX;
+                shape.position.y = shape.userData.originalY + 
+                    Math.cos(t * 1.5 + shape.userData.originalX) * shape.userData.wiggleAmountY +
+                    shape.userData.attractionForceY;
+                shape.position.z = shape.userData.originalZ + 
+                    Math.sin(t * 1.8) * shape.userData.wiggleAmountZ +
+                    shape.userData.attractionForceZ;
                 
-                // Boundary wrapping (teleport to other side)
-                const boundary = 25;
-                if (heart.position.x > boundary) heart.position.x = -boundary;
-                if (heart.position.x < -boundary) heart.position.x = boundary;
-                if (heart.position.y > boundary) heart.position.y = -boundary;
-                if (heart.position.y < -boundary) heart.position.y = boundary;
-                if (heart.position.z > 15) heart.position.z = -15;
-                if (heart.position.z < -15) heart.position.z = 15;
-                
-                // Rotation
-                heart.rotation.x += heart.userData.rotationSpeedX;
-                heart.rotation.y += heart.userData.rotationSpeedY;
-                heart.rotation.z += heart.userData.rotationSpeedZ;
+                // Slight rotation
+                shape.rotation.x += shape.userData.rotationSpeedX;
+                shape.rotation.y += shape.userData.rotationSpeedY;
+                shape.rotation.z += shape.userData.rotationSpeedZ;
             });
 
             renderer.render(scene, camera);
