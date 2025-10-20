@@ -601,6 +601,7 @@
             scene.add(pointLight);
 
             window.addEventListener('resize', onResize);
+            window.addEventListener('mousemove', onClick);
             window.addEventListener('click', onClick);
 
             animate();
@@ -628,7 +629,7 @@
             heartShape.bezierCurveTo(0.6, -0.3, 0, -0.3, 0, 0);
 
             const extrudeSettings = {
-                depth: 0.3,
+                depth: 0.03,
                 bevelEnabled: true,
                 bevelThickness: 0.05,
                 bevelSize: 0.05,
@@ -647,11 +648,11 @@
                 // Add more emoji paths here
             ];
 
-            for (let i = 0; i < 15; i++) {
+            for (let i = 0; i < 5; i++) {
                 let particle;
                 
                 // 50% chance for heart, 50% chance for emoji
-                if (Math.random() > 0.5) {
+                if (Math.random() > 0.7) {
                     // Create 3D heart
                     const geometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
                     const material = new THREE.MeshPhongMaterial({ 
@@ -659,17 +660,18 @@
                     });
                     particle = new THREE.Mesh(geometry, material);
                 } else {
-                    // Create emoji sprite
+                    // Create emoji as 3D plane
                     const textureLoader = new THREE.TextureLoader();
                     const randomEmoji = emojiPaths[Math.floor(Math.random() * emojiPaths.length)];
                     const texture = textureLoader.load(randomEmoji);
                     
-                    const spriteMaterial = new THREE.SpriteMaterial({ 
+                    const planeGeometry = new THREE.PlaneGeometry(1, 1);
+                    const planeMaterial = new THREE.MeshBasicMaterial({ 
                         map: texture,
-                        transparent: true
+                        transparent: true,
+                        side: THREE.DoubleSide // Show both sides of the plane
                     });
-                    particle = new THREE.Sprite(spriteMaterial);
-                    particle.scale.set(1, 1, 1); // Adjust size as needed
+                    particle = new THREE.Mesh(planeGeometry, planeMaterial);
                 }
                 
                 particle.position.copy(pos);
@@ -694,7 +696,7 @@
                     z: (Math.random() - 0.5) * 0.1
                 };
                 
-                particle.life = 2.0;
+                particle.life = 3.0;
                 particle.decay = Math.random() * 0.01 + 0.015;
                 
                 scene.add(particle);
