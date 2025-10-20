@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wedding Invitation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      overflow-x: hidden;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    #canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    .section {
+      position: relative;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      padding: 60px;
+      max-width: 500px;
+      text-align: center;
+      color: white;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s ease;
+    }
+
+    .card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .card h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+      font-weight: 300;
+      letter-spacing: 2px;
+    }
+
+    .card h2 {
+      font-size: 2em;
+      margin-bottom: 30px;
+      font-weight: 400;
+    }
+
+    .card p {
+      font-size: 1.2em;
+      line-height: 1.8;
+      margin-bottom: 15px;
+      opacity: 0.9;
+    }
+
+    .divider {
+      width: 100px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, white, transparent);
+      margin: 30px auto;
+    }
+
+    .couple-names {
+      font-size: 2.5em;
+      font-weight: 300;
+      margin: 20px 0;
+    }
+
+    .ampersand {
+      font-family: 'Brush Script MT', cursive;
+      font-size: 1.5em;
+      margin: 0 10px;
+      opacity: 0.8;
+    }
+
+    .date {
+      font-size: 1.8em;
+      font-weight: 300;
+      margin-top: 20px;
+      letter-spacing: 3px;
+    }
+
+    .location {
+      font-size: 1.3em;
+      margin-top: 10px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div class="section" data-section="0">
+    <div class="card">
+      <h2>You're Invited</h2>
+      <div class="divider"></div>
+      <p>To celebrate the marriage of</p>
+      <div class="couple-names">
+        Alice <span class="ampersand">&</span> Bob
+      </div>
+      <div class="divider"></div>
+      <p>Join us as we begin our journey together</p>
+    </div>
+  </div>
+
+  <div class="section" data-section="1">
+    <div class="card">
+      <h2>With Blessing From</h2>
+      <div class="divider"></div>
+      <p><strong>Parents of the Bride</strong></p>
+      <p>Mr. & Mrs. Anderson</p>
+      <br>
+      <p><strong>Parents of the Groom</strong></p>
+      <p>Mr. & Mrs. Williams</p>
+      <div class="divider"></div>
+      <p>Together with their families</p>
+    </div>
+  </div>
+
+  <div class="section" data-section="2">
+    <div class="card">
+      <h2>Save The Date</h2>
+      <div class="divider"></div>
+      <div class="date">June 15, 2025</div>
+      <div class="location">Garden Valley Resort</div>
+      <div class="location">123 Paradise Lane, California</div>
+      <div class="divider"></div>
+      <p>Ceremony begins at 4:00 PM</p>
+      <p>Reception to follow</p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    let scene, camera, renderer;
+    let emoji1, emoji2, emoji3;
+    let targetScroll = 0;
+    let currentScroll = 0;
+
+    function init() {
+      // Scene
+      scene = new THREE.Scene();
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(
+        50,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.z = 5;
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({
+        canvas: document.getElementById('canvas'),
+        antialias: true,
+        alpha: true
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      scene.add(ambientLight);
+
+      const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.6);
+      directionalLight1.position.set(5, 5, 5);
+      scene.add(directionalLight1);
+
+      const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+      directionalLight2.position.set(-5, -5, -5);
+      scene.add(directionalLight2);
+
+      // Create 3D Emojis - 2 objects per section
+      Promise.all([
+        createEmoji('💍'),
+        createEmoji('💍')
+      ]).then(([ring1, ring2]) => {
+        emoji1 = new THREE.Group();
+        ring1.position.x = -0.8;
+        ring2.position.x = 0.8;
+        emoji1.add(ring1);
+        emoji1.add(ring2);
+        emoji1.scale.set(1.5, 1.5, 1.5);
+        scene.add(emoji1);
+      });
+
+      Promise.all([
+        createEmoji('🤵🏻‍♂️'),
+        createEmoji('👰🏻‍♀️')
+      ]).then(([groom, bride]) => {
+        emoji2 = new THREE.Group();
+        groom.position.x = -0.8;
+        bride.position.x = 0.8;
+        emoji2.add(groom);
+        emoji2.add(bride);
+        emoji2.scale.set(0, 0, 0);
+        scene.add(emoji2);
+      });
+
+      Promise.all([
+        createEmoji('📌'),
+        createEmoji('📅')
+      ]).then(([pin, calendar]) => {
+        emoji3 = new THREE.Group();
+        pin.position.x = -0.8;
+        calendar.position.x = 0.8;
+        emoji3.add(pin);
+        emoji3.add(calendar);
+        emoji3.scale.set(0, 0, 0);
+        scene.add(emoji3);
+      });
+
+      // Event listeners
+      window.addEventListener('resize', onWindowResize);
+      window.addEventListener('scroll', onScroll);
+
+      // Intersection Observer for cards
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.querySelector('.card').classList.add('visible');
+            }
+          });
+        },
+        { threshold: 0.5 }
+      );
+
+      document.querySelectorAll('.section').forEach(section => {
+        observer.observe(section);
+      });
+
+      animate();
+    }
+
+    function createEmoji(emoji) {
+      return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const size = 256;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // Draw emoji on canvas
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, size, size);
+        ctx.font = `${size * 0.8}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, size / 2, size / 2);
+
+        // Create texture from canvas
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+
+        // Create extruded geometry
+        const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.05);
+        const materials = [
+          new THREE.MeshStandardMaterial({ color: 0xffffff }), // right
+          new THREE.MeshStandardMaterial({ color: 0xffffff }), // left
+          new THREE.MeshStandardMaterial({ color: 0xffffff }), // top
+          new THREE.MeshStandardMaterial({ color: 0xffffff }), // bottom
+          new THREE.MeshStandardMaterial({ map: texture }), // front
+          new THREE.MeshStandardMaterial({ map: texture }) // back
+        ];
+
+        const mesh = new THREE.Mesh(geometry, materials);
+        resolve(mesh);
+      });
+    }
+
+    function onScroll() {
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      targetScroll = window.scrollY / scrollHeight;
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function easeOutElastic(x) {
+      const c4 = (2 * Math.PI) / 3;
+      return x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1;
+    }
+
+    function easeOutBounce(x) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (x < 1 / d1) {
+        return n1 * x * x;
+      } else if (x < 2 / d1) {
+        return n1 * (x -= 1.5 / d1) * x + 0.75;
+      } else if (x < 2.5 / d1) {
+        return n1 * (x -= 2.25 / d1) * x + 0.9375;
+      } else {
+        return n1 * (x -= 2.625 / d1) * x + 0.984375;
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Smooth scroll interpolation
+      currentScroll += (targetScroll - currentScroll) * 0.05;
+
+      if (!emoji1 || !emoji2 || !emoji3) return;
+
+      // Section 1: Rings pan out (0 - 0.33)
+      if (currentScroll < 0.33) {
+        const progress = currentScroll / 0.33;
+        const scale = 1.5 - progress * 0.5; // 1.5 -> 1.0
+        emoji1.scale.set(scale, scale, scale);
+        
+        // Rotate rings independently in opposite directions
+        emoji1.children[0].rotation.y += 0.01;
+        emoji1.children[1].rotation.y -= 0.01;
+        emoji1.children[0].rotation.z = Math.sin(Date.now() * 0.001) * 0.2;
+        emoji1.children[1].rotation.z = Math.cos(Date.now() * 0.001) * 0.2;
+        
+        camera.position.z = 5 + progress * 0.5;
+      }
+      
+      // Transition 1->2: Rings out, Couple in (0.33 - 0.5)
+      else if (currentScroll < 0.5) {
+        const progress = (currentScroll - 0.33) / 0.17;
+        
+        // Rings shrink with bounce
+        const shrinkProgress = Math.min(progress * 1.5, 1);
+        const scale1 = (1 - easeOutBounce(shrinkProgress)) * 1;
+        emoji1.scale.set(scale1, scale1, scale1);
+        
+        // Spin faster as they shrink
+        emoji1.children[0].rotation.y += 0.05;
+        emoji1.children[1].rotation.y -= 0.05;
+        emoji1.children[0].rotation.z += 0.03;
+        emoji1.children[1].rotation.z -= 0.03;
+        
+        // Couple pops with elastic
+        if (progress > 0.3) {
+          const popProgress = (progress - 0.3) / 0.7;
+          const scale2 = easeOutElastic(popProgress) * 1.2;
+          emoji2.scale.set(scale2, scale2, scale2);
+          
+          // Groom and bride rotate differently during entrance
+          emoji2.children[0].rotation.y = popProgress * Math.PI * 2;
+          emoji2.children[1].rotation.y = -popProgress * Math.PI * 2;
+        }
+      }
+      
+      // Section 2: Couple idle (0.5 - 0.66)
+      else if (currentScroll < 0.66) {
+        emoji1.scale.set(0, 0, 0);
+        emoji2.scale.set(1, 1, 1);
+        
+        // Groom and bride rotate opposite directions
+        emoji2.children[0].rotation.y += 0.008;
+        emoji2.children[1].rotation.y -= 0.008;
+        emoji2.children[0].rotation.x = Math.sin(Date.now() * 0.001) * 0.15;
+        emoji2.children[1].rotation.x = Math.cos(Date.now() * 0.001) * 0.15;
+      }
+      
+      // Transition 2->3: Couple out, Location in (0.66 - 0.83)
+      else if (currentScroll < 0.83) {
+        const progress = (currentScroll - 0.66) / 0.17;
+        
+        // Couple shrinks with bounce
+        const shrinkProgress = Math.min(progress * 1.5, 1);
+        const scale2 = (1 - easeOutBounce(shrinkProgress)) * 1;
+        emoji2.scale.set(scale2, scale2, scale2);
+        
+        // Spin faster as they shrink
+        emoji2.children[0].rotation.y += 0.05;
+        emoji2.children[1].rotation.y -= 0.05;
+        emoji2.children[0].rotation.x += 0.03;
+        emoji2.children[1].rotation.x -= 0.03;
+        
+        // Location pops with elastic
+        if (progress > 0.3) {
+          const popProgress = (progress - 0.3) / 0.7;
+          const scale3 = easeOutElastic(popProgress) * 1.2;
+          emoji3.scale.set(scale3, scale3, scale3);
+          
+          // Pin and calendar rotate differently during entrance
+          emoji3.children[0].rotation.y = popProgress * Math.PI * 2;
+          emoji3.children[1].rotation.y = -popProgress * Math.PI * 2;
+        }
+      }
+      
+      // Section 3: Location idle (0.83 - 1.0)
+      else {
+        emoji2.scale.set(0, 0, 0);
+        emoji3.scale.set(1, 1, 1);
+        
+        // Pin and calendar rotate opposite directions
+        emoji3.children[0].rotation.y += 0.008;
+        emoji3.children[1].rotation.y -= 0.008;
+        emoji3.children[0].rotation.z = Math.sin(Date.now() * 0.001) * 0.15;
+        emoji3.children[1].rotation.z = Math.cos(Date.now() * 0.001) * 0.15;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    init();
+  </script>
+</body>
+</html>
