@@ -62,7 +62,6 @@
 
             window.addEventListener('resize', onResize);
             window.addEventListener('mousemove', onClick);
-            window.addEventListener('touchmove', onClick);
             window.addEventListener('click', onClick);
 
             animate();

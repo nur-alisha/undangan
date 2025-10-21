@@ -7,8 +7,9 @@
         body {
             font-family: 'Montserrat', sans-serif;
             overflow-x: hidden;
-            background: linear-gradient(135deg, #fa8787 0%, #cdeb4b 100%);
+            background: linear-gradient(135deg, #bdd4d6 0%, #0251fa 100%);
         }
+
 
         #canvas-container {
             position: fixed;
@@ -37,7 +38,7 @@
         }
 
         .hero-content {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(5, 5, 5, 0.15);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 50px 60px;
@@ -90,7 +91,7 @@
         .section h2 {
             font-family: 'Cormorant Garamond', serif;
             font-size: 2.5rem;
-            color: #667eea;
+            color: #6694ea;
             margin-bottom: 40px;
         }
 
@@ -112,7 +113,7 @@
         .person h3 {
             font-family: 'Cormorant Garamond', serif;
             font-size: 2rem;
-            color: #667eea;
+            color: #0b20dd;
             margin-bottom: 10px;
         }
 
@@ -124,7 +125,7 @@
         .ampersand {
             font-family: 'Cormorant Garamond', serif;
             font-size: 4rem;
-            color: #764ba2;
+            color: #003cff;
         }
 
         .event-details {
@@ -137,7 +138,7 @@
         }
 
         .event-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #66b5ea 0%, #4b54a2 100%);
             padding: 40px;
             border-radius: 15px;
             color: white;
@@ -160,7 +161,7 @@
             margin-top: 20px;
             padding: 12px 30px;
             background: white;
-            color: #667eea;
+            color: #390ff3;
             text-decoration: none;
             border-radius: 25px;
             font-weight: 600;
@@ -277,7 +278,7 @@
         }
 
         .rsvp-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4fa7f0 0%, #4c66da 100%);
             color: white;
         }
 

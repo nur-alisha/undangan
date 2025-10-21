@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volumetric Clouds - Time of Day</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif;
+        }
+        canvas { 
+            display: block; 
+            width: 100vw; 
+            height: 100vh;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            min-width: 200px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .value {
+            font-size: 11px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="control-group">
+            <label>Time of Day: <span class="value" id="timeValue">12:00</span></label>
+            <input type="range" id="timeSlider" min="0" max="24" step="0.1" value="12">
+        </div>
+        <div class="control-group">
+            <label>Cloud Coverage: <span class="value" id="coverageValue">0.5</span></label>
+            <input type="range" id="coverageSlider" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <div class="control-group">
+            <label>Cloud Speed: <span class="value" id="speedValue">1.0</span></label>
+            <input type="range" id="speedSlider" min="0" max="3" step="0.1" value="1.0">
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, cloudMaterial;
+        let time = 0;
+        let timeOfDay = 12;
+        let coverage = 0.5;
+        let cloudSpeed = 1.0;
+
+        // Vertex Shader
+        const vertexShader = `
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            void main() {
+                vUv = uv;
+                vPosition = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        // Fragment Shader with volumetric clouds and atmospheric lighting
+        const fragmentShader = `
+            uniform float uTime;
+            uniform float uTimeOfDay;
+            uniform float uCoverage;
+            varying vec2 vUv;
+            varying vec3 vPosition;
+
+            // Simple 3D noise function
+            vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+            vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+            float snoise(vec3 v) {
+                const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+                const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+                vec3 i  = floor(v + dot(v, C.yyy));
+                vec3 x0 = v - i + dot(i, C.xxx);
+                vec3 g = step(x0.yzx, x0.xyz);
+                vec3 l = 1.0 - g;
+                vec3 i1 = min(g.xyz, l.zxy);
+                vec3 i2 = max(g.xyz, l.zxy);
+                vec3 x1 = x0 - i1 + C.xxx;
+                vec3 x2 = x0 - i2 + C.yyy;
+                vec3 x3 = x0 - D.yyy;
+                i = mod289(i);
+                vec4 p = permute(permute(permute(
+                    i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                    + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                    + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+                float n_ = 0.142857142857;
+                vec3 ns = n_ * D.wyz - D.xzx;
+                vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+                vec4 x_ = floor(j * ns.z);
+                vec4 y_ = floor(j - 7.0 * x_);
+                vec4 x = x_ *ns.x + ns.yyyy;
+                vec4 y = y_ *ns.x + ns.yyyy;
+                vec4 h = 1.0 - abs(x) - abs(y);
+                vec4 b0 = vec4(x.xy, y.xy);
+                vec4 b1 = vec4(x.zw, y.zw);
+                vec4 s0 = floor(b0)*2.0 + 1.0;
+                vec4 s1 = floor(b1)*2.0 + 1.0;
+                vec4 sh = -step(h, vec4(0.0));
+                vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+                vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+                vec3 p0 = vec3(a0.xy, h.x);
+                vec3 p1 = vec3(a0.zw, h.y);
+                vec3 p2 = vec3(a1.xy, h.z);
+                vec3 p3 = vec3(a1.zw, h.w);
+                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+                p0 *= norm.x;
+                p1 *= norm.y;
+                p2 *= norm.z;
+                p3 *= norm.w;
+                vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                m = m * m;
+                return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+            }
+
+            // Fractional Brownian Motion
+            float fbm(vec3 p) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                float frequency = 1.0;
+                for(int i = 0; i < 5; i++) {
+                    value += amplitude * snoise(p * frequency);
+                    frequency *= 2.0;
+                    amplitude *= 0.5;
+                }
+                return value;
+            }
+
+            // Calculate sun position based on time of day
+            vec3 getSunDirection(float tod) {
+                float angle = (tod - 6.0) * 3.14159 / 12.0; // 6am to 6pm = 0 to PI
+                return normalize(vec3(0.0, sin(angle), cos(angle)));
+            }
+
+            // Get sky color based on sun position
+            vec3 getSkyColor(vec3 rayDir, vec3 sunDir) {
+                float sunDot = max(dot(rayDir, sunDir), 0.0);
+                
+                // Time-based colors
+                float dayFactor = max(sunDir.y, 0.0);
+                
+                // Day sky
+                vec3 daySky = vec3(0.3, 0.5, 0.9);
+                vec3 dayHorizon = vec3(0.6, 0.7, 0.9);
+                
+                // Sunset/sunrise
+                vec3 sunsetSky = vec3(0.8, 0.4, 0.2);
+                vec3 sunsetHorizon = vec3(1.0, 0.6, 0.3);
+                
+                // Night
+                vec3 nightSky = vec3(0.01, 0.01, 0.05);
+                
+                // Blend between day and sunset
+                float sunsetBlend = smoothstep(0.1, 0.3, sunDir.y) * smoothstep(-0.1, 0.1, sunDir.y);
+                vec3 skyColor = mix(sunsetSky, daySky, sunsetBlend);
+                vec3 horizonColor = mix(sunsetHorizon, dayHorizon, sunsetBlend);
+                
+                // Blend to night
+                skyColor = mix(nightSky, skyColor, smoothstep(-0.2, 0.0, sunDir.y));
+                horizonColor = mix(nightSky, horizonColor, smoothstep(-0.2, 0.0, sunDir.y));
+                
+                // Vertical gradient
+                float heightFactor = smoothstep(-0.2, 0.5, rayDir.y);
+                vec3 baseColor = mix(horizonColor, skyColor, heightFactor);
+                
+                // Sun glow
+                float sunGlow = pow(sunDot, 32.0) * 2.0;
+                vec3 sunColor = vec3(1.0, 0.9, 0.7) * max(sunDir.y, 0.0);
+                
+                return baseColor + sunColor * sunGlow;
+            }
+
+            void main() {
+                vec3 rayDir = normalize(vec3(vUv - 0.5, 0.5));
+                vec3 sunDir = getSunDirection(uTimeOfDay);
+                
+                // Sky background
+                vec3 skyColor = getSkyColor(rayDir, sunDir);
+                
+                // Only render clouds in upper hemisphere
+                if(rayDir.y < -0.1) {
+                    gl_FragColor = vec4(skyColor, 1.0);
+                    return;
+                }
+                
+                // Ray marching for clouds
+                float cloudDensity = 0.0;
+                vec3 cloudColor = vec3(0.0);
+                float totalDensity = 0.0;
+                
+                int steps = 32;
+                float stepSize = 0.15;
+                
+                for(int i = 0; i < 32; i++) {
+                    float t = float(i) * stepSize;
+                    vec3 pos = vec3(vPosition.x + rayDir.x * t, 
+                                   vPosition.y + rayDir.y * t + 2.0, 
+                                   vPosition.z + rayDir.z * t);
+                    
+                    // Animate clouds
+                    pos.x += uTime * 0.1;
+                    pos.z += uTime * 0.05;
+                    
+                    // Sample cloud density
+                    float noise = fbm(pos * 0.5);
+                    float density = smoothstep(uCoverage - 0.3, uCoverage + 0.3, noise);
+                    density *= smoothstep(1.5, 3.0, pos.y) * smoothstep(5.0, 4.0, pos.y);
+                    
+                    if(density > 0.01) {
+                        // Light scattering
+                        vec3 lightPos = pos + sunDir * 0.5;
+                        float lightSample = fbm(lightPos * 0.5);
+                        float lightTransmission = smoothstep(0.0, 0.5, lightSample);
+                        
+                        // Cloud lighting based on sun position
+                        float sunLight = max(dot(normalize(pos), sunDir), 0.0);
+                        float ambient = 0.3 + sunDir.y * 0.4;
+                        
+                        // Color based on time of day
+                        vec3 sunColor = mix(
+                            vec3(1.0, 0.6, 0.3),  // Sunset orange
+                            vec3(1.0, 1.0, 0.95), // Bright white
+                            smoothstep(0.0, 0.3, sunDir.y)
+                        );
+                        
+                        vec3 cloudShade = mix(
+                            vec3(1.1, 1.1, 1.1) * ambient,
+                            sunColor,
+                            lightTransmission * sunLight
+                        );
+                        
+                        // Accumulate
+                        float alpha = density * (1.0 - totalDensity);
+                        cloudColor += cloudShade * alpha;
+                        totalDensity += alpha;
+                        
+                        if(totalDensity > 0.95) break;
+                    }
+                }
+                
+                // Blend with sky
+                vec3 finalColor = mix(skyColor, cloudColor, totalDensity);
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 2;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Create fullscreen quad with custom shader
+            const geometry = new THREE.PlaneGeometry(4, 4);
+            cloudMaterial = new THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: {
+                    uTime: { value: 0 },
+                    uTimeOfDay: { value: timeOfDay },
+                    uCoverage: { value: coverage }
+                }
+            });
+
+            const mesh = new THREE.Mesh(geometry, cloudMaterial);
+            scene.add(mesh);
+
+            // Controls
+            setupControls();
+
+            // Handle resize
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function setupControls() {
+            const timeSlider = document.getElementById('timeSlider');
+            const timeValue = document.getElementById('timeValue');
+            const coverageSlider = document.getElementById('coverageSlider');
+            const coverageValue = document.getElementById('coverageValue');
+            const speedSlider = document.getElementById('speedSlider');
+            const speedValue = document.getElementById('speedValue');
+
+            timeSlider.addEventListener('mousemove', (e) => {
+                timeOfDay = parseFloat(e.target.value);
+                const hours = Math.floor(timeOfDay);
+                const minutes = Math.floor((timeOfDay % 1) * 60);
+                timeValue.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            });
+
+            coverageSlider.addEventListener('mousemove', (e) => {
+                coverage =  Math.random()* Math.PI / 2;
+                coverageValue.textContent = coverage.toFixed(2);
+            });
+
+            speedSlider.addEventListener('mousemove', (e) => {
+                cloudSpeed = Math.random() * Math.PI / 2;
+                speedValue.textContent = cloudSpeed.toFixed(1);
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            time += 0.01 * cloudSpeed;
+            cloudMaterial.uniforms.uTime.value = time;
+            cloudMaterial.uniforms.uTimeOfDay.value = timeOfDay;
+            cloudMaterial.uniforms.uCoverage.value = coverage;
+            
+            renderer.render(scene, camera);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
